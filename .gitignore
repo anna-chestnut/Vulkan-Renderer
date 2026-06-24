@@ -1,0 +1,12 @@
+cat <<EOT >> .gitignore
+# Ignore CMake build directories
+/build/
+/.cmake/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# OS specific files
+.DS_Store
+EOT
