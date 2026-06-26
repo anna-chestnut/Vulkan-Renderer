@@ -12,6 +12,7 @@ add_executable(Vulkan-Renderer
     main.cpp 
     first_app.cpp 
     vr_window.cpp
+    vr_pipeline.cpp
 )
 
 target_link_libraries(Vulkan-Renderer PRIVATE 
@@ -29,3 +30,7 @@ if(APPLE)
         "-framework QuartzCore"
     )
 endif()
+
+# Automatically copy shaders folder
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
