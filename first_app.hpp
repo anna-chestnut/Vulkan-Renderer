@@ -2,6 +2,7 @@
 
 #include "vr_window.hpp"
 #include "vr_pipeline.hpp"
+#include "vr_device.hpp"
 
 namespace vr
 {
@@ -15,7 +16,12 @@ namespace vr
 
         private:
             VrWindow vrWindow{WIDTH, HEIGHT, "Hello Vulkan!"};
-            VrPipeline vrPipeline{"shaders/simple_shader.vert.spv", "shaders/simple_shader.frag.spv"};
+            VrDevice vrDevice{vrWindow};
+            VrPipeline vrPipeline{
+                vrDevice,
+                "shaders/simple_shader.vert.spv",
+                "shaders/simple_shader.frag.spv",
+                VrPipeline::defaultPipelineConfigInfo(WIDTH, HEIGHT)};
     };
     
 
