@@ -6,9 +6,9 @@
 #include <stdexcept>
 
 int main(){
-    vr::FirstApp app{};
 
     try{
+        vr::FirstApp app{};
         app.run();
     } catch (const std::exception &e){
         std::cerr << e.what() << '\n';

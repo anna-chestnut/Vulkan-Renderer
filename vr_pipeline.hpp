@@ -10,7 +10,6 @@ namespace vr{
     struct PipelineConfigInfo{
         VkViewport viewport;
         VkRect2D scissor;
-        VkPipelineViewportStateCreateInfo viewportInfo;
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
         VkPipelineRasterizationStateCreateInfo rasterizationInfo;
         VkPipelineMultisampleStateCreateInfo multisampleInfo;
@@ -34,7 +33,7 @@ namespace vr{
         VrPipeline(const VrPipeline&) = delete;
         void operator=(const VrPipeline&) = delete;
 
-        static PipelineConfigInfo defaultPipelineConfigInfo(u_int32_t width, uint32_t height);
+        static PipelineConfigInfo defaultPipelineConfigInfo(uint32_t width, uint32_t height);
 
         private:
         static std::vector<char> readFile(const std::string& filePath);
