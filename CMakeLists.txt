@@ -34,6 +34,44 @@ if(APPLE)
     )
 endif()
 
-# Automatically copy shaders folder
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# Compile GLSL shaders to SPIR-V
+find_program(GLSLC glslc
+    HINTS
+        $ENV{VULKAN_SDK}/bin
+        /Users/annachen/VulkanSDK/1.4.350.1/macOS/bin
+)
+
+if(NOT GLSLC)
+    message(FATAL_ERROR "glslc not found. Make sure Vulkan SDK is installed and VULKAN_SDK is set.")
+endif()
+
+file(GLOB_RECURSE SHADER_SOURCES
+    CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag"
+)
+
+set(SPIRV_BINARY_FILES "")
+
+foreach(SHADER ${SHADER_SOURCES})
+    get_filename_component(SHADER_NAME ${SHADER} NAME)
+
+    set(SPIRV_OUTPUT
+        "${CMAKE_CURRENT_BINARY_DIR}/shaders/${SHADER_NAME}.spv"
+    )
+
+    add_custom_command(
+        OUTPUT ${SPIRV_OUTPUT}
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/shaders"
+        COMMAND ${GLSLC} ${SHADER} -o ${SPIRV_OUTPUT}
+        DEPENDS ${SHADER}
+        COMMENT "Compiling shader ${SHADER_NAME}"
+    )
+
+    list(APPEND SPIRV_BINARY_FILES ${SPIRV_OUTPUT})
+endforeach()
+
+add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
+
+add_dependencies(Vulkan-Renderer Shaders)

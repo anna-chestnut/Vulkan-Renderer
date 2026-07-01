@@ -22,33 +22,45 @@ VrSwapChain::VrSwapChain(VrDevice &deviceRef, VkExtent2D extent)
 }
 
 VrSwapChain::~VrSwapChain() {
+  // Make sure GPU is not still using swap chain resources
+  vkDeviceWaitIdle(device.device());
+
+  // Framebuffers use swap chain image views and depth image views,
+  // so destroy framebuffers first.
+  for (auto framebuffer : swapChainFramebuffers) {
+    vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
+  }
+
+  // Render pass can be destroyed after framebuffers.
+  vkDestroyRenderPass(device.device(), renderPass, nullptr);
+
+  // Destroy swap chain image views.
   for (auto imageView : swapChainImageViews) {
     vkDestroyImageView(device.device(), imageView, nullptr);
   }
-  swapChainImageViews.clear();
 
-  if (swapChain != nullptr) {
-    vkDestroySwapchainKHR(device.device(), swapChain, nullptr);
-    swapChain = nullptr;
-  }
-
-  for (int i = 0; i < depthImages.size(); i++) {
+  // Destroy depth resources.
+  for (size_t i = 0; i < depthImages.size(); i++) {
     vkDestroyImageView(device.device(), depthImageViews[i], nullptr);
     vkDestroyImage(device.device(), depthImages[i], nullptr);
     vkFreeMemory(device.device(), depthImageMemorys[i], nullptr);
   }
 
-  for (auto framebuffer : swapChainFramebuffers) {
-    vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
+  // Destroy swap chain.
+  if (swapChain != VK_NULL_HANDLE) {
+    vkDestroySwapchainKHR(device.device(), swapChain, nullptr);
+    swapChain = VK_NULL_HANDLE;
   }
 
-  vkDestroyRenderPass(device.device(), renderPass, nullptr);
-
-  // cleanup synchronization objects
+  // Destroy per-frame-in-flight sync objects.
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(device.device(), inFlightFences[i], nullptr);
+  }
+
+  // Destroy per-swap-chain-image render-finished semaphores.
+  for (size_t i = 0; i < renderFinishedSemaphores.size(); i++) {
+    vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
   }
 }
 
@@ -90,7 +102,7 @@ VkResult VrSwapChain::submitCommandBuffers(
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = buffers;
 
-  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[*imageIndex]};
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -337,7 +349,7 @@ void VrSwapChain::createDepthResources() {
 
 void VrSwapChain::createSyncObjects() {
   imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  renderFinishedSemaphores.resize(imageCount());
   inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
   imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
 
@@ -351,10 +363,15 @@ void VrSwapChain::createSyncObjects() {
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) !=
             VK_SUCCESS ||
-        vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
-            VK_SUCCESS ||
         vkCreateFence(device.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
       throw std::runtime_error("failed to create synchronization objects for a frame!");
+    }
+  }
+
+  for (size_t i = 0; i < imageCount(); i++) {
+    if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
+        VK_SUCCESS) {
+      throw std::runtime_error("failed to create render finished semaphore!");
     }
   }
 }
