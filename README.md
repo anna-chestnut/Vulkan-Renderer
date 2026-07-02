@@ -39,6 +39,18 @@ This project follows the general structure of the Little Vulkan Engine tutorial,
 - Fixed semaphore reuse issue for newer Vulkan validation layers by using render-finished semaphores per swap chain image
 - Fixed cleanup order for swap chain resources
 
+### Tutorial 6: Vertex Buffer Setup
+
+- Added `VrModel` wrapper class
+- Added `Vertex` struct with position data
+- Created vertex buffer
+- Allocated vertex buffer memory
+- Mapped CPU vertex data into GPU-accessible memory
+- Added vertex binding descriptions
+- Added vertex attribute descriptions
+- Updated graphics pipeline to use vertex input state
+- Updated vertex shader to read position from vertex buffer
+
 ## Current Renderer Flow
 
 The current renderer setup is roughly:

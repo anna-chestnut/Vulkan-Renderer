@@ -16,6 +16,7 @@ add_executable(Vulkan-Renderer
     vr_pipeline.cpp
     vr_device.cpp
     vr_swap_chain.cpp
+    vr_model.cpp
 )
 
 target_link_libraries(Vulkan-Renderer PRIVATE 

@@ -1,4 +1,5 @@
 #include "vr_pipeline.hpp"
+#include "vr_model.hpp"
 
 //std
 #include <cassert>
@@ -78,12 +79,17 @@ namespace vr
         shaderStages[1].pNext = nullptr;
         shaderStages[1].pSpecializationInfo = nullptr;
 
+        auto bindingDescriptions = VrModel::Vertex::getBindingDescriptions();
+        auto attributeDescriptions = VrModel::Vertex::getAttributeDescriptions();
+
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+        vertexInputInfo.vertexBindingDescriptionCount =
+            static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+        vertexInputInfo.vertexAttributeDescriptionCount =
+            static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
         VkPipelineViewportStateCreateInfo viewportInfo{};
         viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -101,7 +107,9 @@ namespace vr
         pipelineInfo.pViewportState = &viewportInfo;
         pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
         pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
-        pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
+        VkPipelineColorBlendStateCreateInfo colorBlendInfo = configInfo.colorBlendInfo;
+        colorBlendInfo.pAttachments = &configInfo.colorBlendAttachment;
+        pipelineInfo.pColorBlendState = &colorBlendInfo;
         pipelineInfo.pDynamicState = nullptr; // Optional
         pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
 
@@ -126,7 +134,7 @@ namespace vr
         vkDestroyShaderModule(vrDevice.device(), fragShaderModule, nullptr);
         vkDestroyShaderModule(vrDevice.device(), vertShaderModule, nullptr);
         fragShaderModule = VK_NULL_HANDLE;
-        vertShaderModule = VK_NULL_HANDLE;
+        vertShaderModule = VK_NULL_HANDLE;        
     }
 
     void VrPipeline::createShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule){
@@ -198,7 +206,8 @@ namespace vr
         configInfo.colorBlendInfo.logicOpEnable = VK_FALSE;
         configInfo.colorBlendInfo.logicOp = VK_LOGIC_OP_COPY; // Optional
         configInfo.colorBlendInfo.attachmentCount = 1;
-        configInfo.colorBlendInfo.pAttachments = &configInfo.colorBlendAttachment;
+        configInfo.colorBlendInfo.attachmentCount = 1;
+        configInfo.colorBlendInfo.pAttachments = nullptr;
         configInfo.colorBlendInfo.blendConstants[0] = 0.0f; // Optional
         configInfo.colorBlendInfo.blendConstants[1] = 0.0f; // Optional
         configInfo.colorBlendInfo.blendConstants[2] = 0.0f; // Optional

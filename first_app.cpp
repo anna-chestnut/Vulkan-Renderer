@@ -9,6 +9,7 @@ namespace vr{
 
     FirstApp::FirstApp()
     {
+        loadModels();
         createPipelineLayout();
         createPipeline();
         createCommandBuffers();
@@ -23,6 +24,12 @@ namespace vr{
         }
 
         vkDeviceWaitIdle(vrDevice.device());
+    }
+
+
+    void FirstApp::loadModels(){
+        std::vector<VrModel::Vertex> vertices{{{0.0f, -0.5f}}, {{0.5f, 0.5f}}, {{-0.5f, 0.5f}}};
+        vrModel = std::make_unique<VrModel>(vrDevice, vertices);
     }
 
     void FirstApp::createPipelineLayout()
@@ -100,8 +107,8 @@ namespace vr{
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             vrPipeline->bind(commandBuffers[i]);
-            // draw 3 vertices and 1 instance, 0 is becuase we don't use offset
-            vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+            vrModel->bind(commandBuffers[i]);
+            vrModel->draw(commandBuffers[i]);
 
             vkCmdEndRenderPass(commandBuffers[i]);
             if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)
