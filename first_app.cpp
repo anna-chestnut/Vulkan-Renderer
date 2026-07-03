@@ -27,8 +27,12 @@ namespace vr{
     }
 
 
-    void FirstApp::loadModels(){
-        std::vector<VrModel::Vertex> vertices{{{0.0f, -0.5f}}, {{0.5f, 0.5f}}, {{-0.5f, 0.5f}}};
+    void FirstApp::loadModels()
+    {
+        std::vector<VrModel::Vertex> vertices{
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
         vrModel = std::make_unique<VrModel>(vrDevice, vertices);
     }
 

@@ -39,17 +39,26 @@ This project follows the general structure of the Little Vulkan Engine tutorial,
 - Fixed semaphore reuse issue for newer Vulkan validation layers by using render-finished semaphores per swap chain image
 - Fixed cleanup order for swap chain resources
 
-### Tutorial 6: Vertex Buffer Setup
+### Tutorial 6: Vertex Buffers
 
 - Added `VrModel` wrapper class
-- Added `Vertex` struct with position data
-- Created vertex buffer
-- Allocated vertex buffer memory
-- Mapped CPU vertex data into GPU-accessible memory
-- Added vertex binding descriptions
-- Added vertex attribute descriptions
+- Added `Vertex` struct for storing vertex data
+- Created and allocated a Vulkan vertex buffer
+- Mapped CPU-side vertex data into GPU-accessible memory
+- Copied triangle vertex positions into the vertex buffer
+- Added vertex binding descriptions to describe vertex stride
+- Added vertex attribute descriptions to describe vertex input layout
 - Updated graphics pipeline to use vertex input state
-- Updated vertex shader to read position from vertex buffer
+- Updated vertex shader to read position data from the vertex buffer
+
+### Tutorial 7: Vertex Colors and Fragment Shader Input
+
+- Extended the `Vertex` struct with color data
+- Updated vertex attribute descriptions for multiple vertex attributes
+- Connected vertex shader outputs to fragment shader inputs
+- Passed color data from the vertex shader to the fragment shader
+- Updated fragment shader to render interpolated vertex colors
+- Rendered a colored triangle using per-vertex color attributes
 
 ## Current Renderer Flow
 
