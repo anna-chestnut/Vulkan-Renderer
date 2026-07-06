@@ -4,7 +4,7 @@
 #include "vr_pipeline.hpp"
 #include "vr_device.hpp"
 #include "vr_swap_chain.hpp"
-#include "vr_model.hpp"
+#include "vr_game_object.hpp"
 
 //std
 #include <memory>
@@ -27,7 +27,7 @@ namespace vr
         void run();
 
     private:
-        void loadModels();
+        void loadGameObjects();
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
@@ -35,6 +35,7 @@ namespace vr
         void drawFrame();
         void recreateSwapChain();
         void recordCommandBuffer(int imageIndex);
+        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         VrWindow vrWindow{WIDTH, HEIGHT, "Hello Vulkan!"};
         VrDevice vrDevice{vrWindow};
@@ -42,7 +43,7 @@ namespace vr
         std::unique_ptr<VrPipeline> vrPipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::unique_ptr<VrModel> vrModel;
+        std::vector<VrGameObject> gameObjects;
     };
 
 } // namespace vr
