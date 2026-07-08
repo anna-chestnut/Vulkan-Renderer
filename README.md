@@ -60,35 +60,176 @@ This project follows the general structure of the Little Vulkan Engine tutorial,
 - Updated fragment shader to render interpolated vertex colors
 - Rendered a colored triangle using per-vertex color attributes
 
-## Current Renderer Flow
+### Tutorial 8: 2D Transformations and Push Constants
 
-The current renderer setup is roughly:
+- Added `VrGameObject` to represent renderable scene objects
+- Added per-object transform data:
+  - translation
+  - scale
+  - rotation
+- Added per-object color data
+- Added push constants for small per-draw data
+- Updated the vertex shader to apply a 2D transform matrix and offset
+- Updated the render loop to draw objects through a simple render system
+- Animated the triangle by updating its rotation every frame
+
+### Tutorial 9: Renderer and Systems Refactor
+
+- Added `VrRenderer` to manage frame lifecycle logic
+- Moved swap chain ownership from `FirstApp` into `VrRenderer`
+- Moved command buffer allocation/freeing into `VrRenderer`
+- Added `beginFrame()` and `endFrame()` to clearly define one frame of work
+- Added `beginSwapChainRenderPass()` and `endSwapChainRenderPass()` to isolate render pass recording
+- Added `SimpleRenderSystem` to own the graphics pipeline and pipeline layout
+- Moved object drawing logic out of `FirstApp` and into `SimpleRenderSystem`
+- Simplified `FirstApp::run()` so it mainly coordinates the application loop
+- Added frame state checks with `isFrameStarted` to catch invalid frame usage
+- Added separate tracking for:
+  - `currentFrameIndex`: the current frame-in-flight resource slot
+  - `currentImageIndex`: the actual swap chain image acquired from Vulkan
+
+### Tutorial 10: Swap Chain Recreation Refactor
+
+- Added old swap chain support when recreating the swap chain
+- Passed the previous swap chain into `VkSwapchainCreateInfoKHR::oldSwapchain`
+- Added `compareSwapFormats()` to verify color/depth format compatibility after recreation
+- Kept the graphics pipeline alive across resize when the new render pass is compatible
+- Recreated swap chain resources when the window is resized or Vulkan reports the swap chain as out of date/suboptimal
+- Improved synchronization ownership:
+  - image-available semaphores are per frame in flight
+  - in-flight fences are per frame in flight
+  - render-finished semaphores are per swap chain image
+
+## Current Architecture
+
+The project is now split into smaller renderer components:
 
 ```txt
-Window
+FirstApp
+  owns: window, device, renderer, game objects
+  job: application setup and main loop coordination
+
+VrRenderer
+  owns: swap chain and command buffers
+  job: begin/end frames and begin/end swap chain render passes
+
+VrSwapChain
+  owns: swap chain images, image views, render pass, depth resources,
+        framebuffers, and synchronization objects
+  job: acquire images, submit command buffers, present images, recreate swap chain resources
+
+SimpleRenderSystem
+  owns: graphics pipeline and pipeline layout
+  job: bind the pipeline, push per-object constants, and draw game objects
+
+VrPipeline
+  owns: Vulkan graphics pipeline
+  job: load SPIR-V shaders and create pipeline state
+
+VrModel
+  owns: vertex buffer and vertex memory
+  job: bind and draw vertex data
+```
+
+## Current Renderer Flow
+
+```txt
+Program startup
   ↓
-Vulkan Instance
+Create window
   ↓
-Surface
+Create Vulkan instance / surface / device
   ↓
-Physical Device
+Create VrRenderer
   ↓
-Logical Device
+Create VrSwapChain
   ↓
-Swap Chain
+Create swap chain images, image views, render pass, depth resources, framebuffers
   ↓
-Image Views
+Create command buffers
   ↓
-Render Pass
+Load game objects
   ↓
-Depth Resources
+Create SimpleRenderSystem
   ↓
-Framebuffers
+Create pipeline layout and graphics pipeline
+```
+
+Each frame:
+
+```txt
+glfwPollEvents()
   ↓
-Pipeline Layout
+VrRenderer::beginFrame()
+  - wait for the current frame fence
+  - acquire a swap chain image
+  - begin recording the current command buffer
   ↓
-Graphics Pipeline
+VrRenderer::beginSwapChainRenderPass()
+  - select framebuffer using currentImageIndex
+  - begin the render pass
+  - set viewport and scissor
   ↓
-Command Buffers
+SimpleRenderSystem::renderGameObjects()
+  - bind graphics pipeline
+  - update object rotation
+  - push transform/color constants
+  - bind model vertex buffer
+  - draw model
   ↓
-Draw / Present Loop
+VrRenderer::endSwapChainRenderPass()
+  ↓
+VrRenderer::endFrame()
+  - end command buffer recording
+  - submit command buffer
+  - present the acquired swap chain image
+  - recreate swap chain if needed
+  - advance currentFrameIndex
+```
+
+## Important Concepts Learned
+
+### Swap Chain Image vs Frame in Flight
+
+`currentImageIndex` and `currentFrameIndex` track different things:
+
+```txt
+currentImageIndex
+  = which swap chain image Vulkan gave us this frame
+  = used for framebuffers, images-in-flight, and per-image render-finished semaphores
+
+currentFrameIndex
+  = which CPU/GPU frame slot we are currently using
+  = used for command buffers, image-available semaphores, and in-flight fences
+```
+
+They do not always have the same value because the swap chain may have more images than the number of frames allowed in flight.
+
+### Why the Pipeline Can Survive Resize
+
+The swap chain recreation now creates a new swap chain, image views, depth resources, render pass, and framebuffers. The graphics pipeline can continue to be used only if the new render pass is compatible with the old one. The code checks this by comparing the swap chain color format and depth format.
+
+If the formats change, the program throws an error instead of silently using an incompatible pipeline.
+
+## Build and Run
+
+From the project root:
+
+```bash
+rm -rf build
+mkdir build
+cd build
+cmake ..
+make
+./Vulkan-Renderer
+```
+
+## Current Output
+
+The renderer currently displays a colored triangle using vertex buffers, vertex colors, push constants, and a simple render system.
+
+## Notes
+
+- This project is primarily for learning Vulkan architecture and renderer structure.
+- The code is being refactored step by step while following the tutorial series.
+- macOS requires MoltenVK-specific setup, including portability-related Vulkan extensions.
