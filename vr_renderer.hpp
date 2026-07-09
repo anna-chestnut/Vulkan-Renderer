@@ -22,6 +22,7 @@ namespace vr
         VrRenderer &operator=(const VrRenderer &) = delete;
 
         VkRenderPass getSwapChainRenderPass() const { return vrSwapChain->getRenderPass(); }
+        float getAspectRatio() const { return vrSwapChain->extentAspectRatio(); }
         bool isFrameInProgress() const {return isFrameStarted;}
 
         VkCommandBuffer getCurrentCommandBuffer() const { 

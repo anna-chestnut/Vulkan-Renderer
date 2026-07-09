@@ -63,7 +63,7 @@ namespace vr{
             pipelineConfig);
     }
 
-    void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, std::vector<VrGameObject> &gameObjects)
+    void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, std::vector<VrGameObject> &gameObjects, const VrCamera &camera)
     {
         vrPipeline->bind(commandBuffer);
 
@@ -74,7 +74,7 @@ namespace vr{
 
             SimplePushConstantData push{};
             push.color = obj.color;
-            push.transform = obj.transform.mat4();
+            push.transform = camera.getProjection() * obj.transform.mat4();
 
             vkCmdPushConstants(
                 commandBuffer,
