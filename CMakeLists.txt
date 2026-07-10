@@ -20,6 +20,7 @@ add_executable(Vulkan-Renderer
     vr_renderer.cpp
     simple_render_system.cpp
     vr_camera.cpp
+    keyboard_movement_controller.cpp
 )
 
 target_link_libraries(Vulkan-Renderer PRIVATE 

@@ -1,5 +1,6 @@
 #include "first_app.hpp"
 
+#include "keyboard_movement_controller.hpp"
 #include "vr_camera.hpp"
 #include "simple_render_system.hpp"
 
@@ -11,6 +12,7 @@
 
 // std
 #include <array>
+#include <chrono>
 #include <cassert>
 #include <stdexcept>
 
@@ -26,14 +28,26 @@ namespace vr{
     void FirstApp::run(){
         SimpleRenderSystem simpleRenderSystem{vrDevice, vrRenderer.getSwapChainRenderPass()};
         VrCamera camera{};
-        //camera.setViewDirection(glm::vec3(0.f), glm::vec3(0.5f, 0.f, 1.f));
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
+        // Invisible helper object that stores the camera's position and rotation.
+        // It is not rendered; its transform is used to update the camera.
+        auto viewObject = VrGameObject::createGameObject();
+        KeyboardMovementController cameraController{};
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
 
         while(!vrWindow.shouldClose()){
 
             glfwPollEvents();
+
+            auto newTime = std::chrono::high_resolution_clock::now();
+            float frameTime = std::chrono::duration<float, std::chrono::seconds::period>(newTime - currentTime).count();
+            currentTime = newTime;
+
+            cameraController.moveInPlaneXZ(vrWindow.getGLFWwindow(), frameTime, viewObject);
+            camera.setViewYXZ(viewObject.transform.translation, viewObject.transform.rotation);
+            
             float aspect = vrRenderer.getAspectRatio();
-            // camera.setOrthographicProjection(-aspect,aspect,-1,1,-1,1);
             camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 10.f);
             if(auto commandBuffer  = vrRenderer.beginFrame()){
 
