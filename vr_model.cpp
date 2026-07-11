@@ -6,41 +6,111 @@
 
 namespace vr {
 
-VrModel::VrModel(VrDevice &device, const std::vector<Vertex> &vertices) : vrDevice{device} {
-  createVertexBuffers(vertices);
+VrModel::VrModel(VrDevice &device, const VrModel::Builder &builder) : vrDevice{device} {
+  createVertexBuffers(builder.vertices);
+  createIndexBuffers(builder.indices);
 }
 
 VrModel::~VrModel() {
   vkDestroyBuffer(vrDevice.device(), vertexBuffer, nullptr);
   vkFreeMemory(vrDevice.device(), vertexBufferMemory, nullptr);
+
+  if (hasIndexBuffer)
+  {
+    vkDestroyBuffer(vrDevice.device(), indexBuffer, nullptr);
+    vkFreeMemory(vrDevice.device(), indexBufferMemory, nullptr);
+  }
 }
 
-void VrModel::createVertexBuffers(const std::vector<Vertex> &vertices) {
+void VrModel::createVertexBuffers(const std::vector<Vertex> &vertices)
+{
   vertexCount = static_cast<uint32_t>(vertices.size());
   assert(vertexCount >= 3 && "Vertex count must be at least 3");
   VkDeviceSize bufferSize = sizeof(vertices[0]) * vertexCount;
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
   vrDevice.createBuffer(
       bufferSize,
-      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // Host = CPU, Device = GPU
+      stagingBuffer,
+      stagingBufferMemory);
+
+  void *data;
+  vkMapMemory(vrDevice.device(), stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
+  vkUnmapMemory(vrDevice.device(), stagingBufferMemory);
+
+  vrDevice.createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
       vertexBuffer,
       vertexBufferMemory);
 
-  void *data;
-  // Map the vertex buffer memory so the CPU can write vertex data into it.
-  vkMapMemory(vrDevice.device(), vertexBufferMemory, 0, bufferSize, 0, &data);
-  memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-  vkUnmapMemory(vrDevice.device(), vertexBufferMemory);
+  vrDevice.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+  vkDestroyBuffer(vrDevice.device(), stagingBuffer, nullptr);
+  vkFreeMemory(vrDevice.device(), stagingBufferMemory, nullptr);
 }
 
-void VrModel::draw(VkCommandBuffer commandBuffer) {
-  vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+void VrModel::createIndexBuffers(const std::vector<uint32_t> &indices) {
+  indexCount = static_cast<uint32_t>(indices.size());
+  hasIndexBuffer = indexCount > 0;
+  if(!hasIndexBuffer) return;
+
+  VkDeviceSize bufferSize = sizeof(indices[0]) * indexCount;
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  vrDevice.createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // Host = CPU, Device = GPU
+      stagingBuffer,
+      stagingBufferMemory);
+
+  void *data;
+  vkMapMemory(vrDevice.device(), stagingBufferMemory, 0, bufferSize, 0, &data);
+  memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+  vkUnmapMemory(vrDevice.device(), stagingBufferMemory);
+
+  vrDevice.createBuffer(
+      bufferSize,
+      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+      indexBuffer,
+      indexBufferMemory);
+
+  vrDevice.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+  vkDestroyBuffer(vrDevice.device(), stagingBuffer, nullptr);
+  vkFreeMemory(vrDevice.device(), stagingBufferMemory, nullptr);
+}
+
+void VrModel::draw(VkCommandBuffer commandBuffer)
+{
+  if (hasIndexBuffer)
+  {
+    vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+  }
+  else
+  {
+
+    vkCmdDraw(commandBuffer, vertexCount, 1, 0, 0);
+  }
 }
 
 void VrModel::bind(VkCommandBuffer commandBuffer) {
   VkBuffer buffers[] = {vertexBuffer};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+
+  if (hasIndexBuffer)
+  {
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  }
+  
 }
 
 std::vector<VkVertexInputBindingDescription> VrModel::Vertex::getBindingDescriptions() {
