@@ -1,309 +1,417 @@
 # Vulkan Renderer
 
-A learning project for building a Vulkan renderer from scratch in C++.
+A learning project for building a small Vulkan renderer from scratch in C++.
 
-This project follows Brendan Galea's Vulkan Game Engine tutorial series, with adjustments for macOS / MoltenVK. The goal is to understand the Vulkan rendering workflow step by step instead of only using a high-level graphics engine.
+This project follows [Brendan Galea's Vulkan Game Engine tutorial series](https://www.youtube.com/playlist?list=PL8327DO66nu9qYVKLDmdLW_84-yE4auCR), with adjustments for macOS and MoltenVK. The goal is to understand Vulkan's rendering workflow, resource ownership, synchronization, graphics mathematics, and engine architecture step by step.
 
 ## Current Progress
+
+Completed through **Tutorial 19: Uniform Buffers**.
 
 ### Tutorial 01: Opening a Window
 
 - Created the initial C++ project structure
-- Added basic application entry point
-- Added `VrWindow` wrapper class
+- Added the application entry point
+- Added a `VrWindow` wrapper class
 - Initialized GLFW
 - Created a GLFW window with Vulkan support
-- Disabled the default OpenGL context by using `GLFW_NO_API`
+- Disabled the default OpenGL context with `GLFW_NO_API`
 
 ### Tutorial 02: Graphics Pipeline Overview
 
-- Studied the high-level Vulkan graphics pipeline flow
-- Reviewed the purpose of programmable shader stages
+- Studied the high-level Vulkan graphics pipeline
+- Reviewed programmable shader stages
 - Reviewed fixed-function pipeline stages
-- Prepared the project for graphics pipeline implementation
+- Learned how vertex data eventually becomes pixels on screen
 
 ### Tutorial 03: Device Setup & Pipeline Continued
 
-- Added `VrDevice` wrapper class
-- Created Vulkan instance
-- Added validation layer support
-- Created debug messenger
-- Created window surface
-- Selected physical device
-- Created logical device
-- Retrieved graphics and present queues
-- Created command pool
-- Added macOS / MoltenVK portability fixes
+- Added a `VrDevice` wrapper class
+- Created the Vulkan instance
+- Added validation-layer support
+- Created a debug messenger
+- Created the window surface
+- Selected a physical device
+- Created the logical device
+- Retrieved graphics and presentation queues
+- Created a command pool
+- Added macOS and MoltenVK portability support
 
-### Tutorial 04: Fixed Function Pipeline Stages
+### Tutorial 04: Fixed-Function Pipeline Stages
 
-- Added `VrPipeline` wrapper class
+- Added a `VrPipeline` wrapper class
 - Loaded compiled SPIR-V shader files
 - Created vertex and fragment shader modules
-- Added `PipelineConfigInfo` struct
-- Set up fixed-function pipeline configuration:
+- Added `PipelineConfigInfo`
+- Configured:
   - input assembly
   - viewport and scissor
   - rasterization
   - multisampling
   - color blending
-  - depth/stencil state
-- Created graphics pipeline
-- Added pipeline bind function
+  - depth and stencil testing
+- Created and bound the graphics pipeline
 
 ### Tutorial 05 Part 1: Swap Chain Overview
 
-- Added `VrSwapChain` wrapper class
-- Queried swap chain support details
-- Selected surface format
-- Selected present mode
-- Selected swap extent
-- Created Vulkan swap chain
-- Retrieved swap chain images
-- Created swap chain image views
-- Added render pass
+- Added a `VrSwapChain` wrapper class
+- Queried swap-chain support
+- Selected the surface format, presentation mode, and extent
+- Created the swap chain
+- Retrieved swap-chain images
+- Created image views
+- Added the render pass
 - Added depth resources
-- Added framebuffers
+- Created framebuffers
 
-### Tutorial 05 Part 2: Command Buffers Overview
+### Tutorial 05 Part 2: Command Buffers
 
 - Allocated command buffers
-- Began and ended command buffer recording
-- Began and ended render pass commands
-- Bound graphics pipeline
+- Recorded render commands
+- Began and ended render passes
+- Bound the graphics pipeline
 - Issued draw commands
-- Added synchronization objects:
-  - image available semaphores
-  - render finished semaphores
+- Added synchronization using:
+  - image-available semaphores
+  - render-finished semaphores
   - in-flight fences
 - Submitted command buffers to the graphics queue
-- Presented rendered swap chain images to the present queue
-- Fixed semaphore reuse issue for newer Vulkan validation layers by using render-finished semaphores per swap chain image
-- Fixed cleanup order for swap chain resources
+- Presented rendered images
+- Fixed semaphore reuse and resource cleanup issues
 
 ### Tutorial 06: Vertex Buffers
 
-- Added `VrModel` wrapper class
-- Added `Vertex` struct for storing vertex data
-- Created and allocated Vulkan vertex buffer
-- Mapped CPU-side vertex data into GPU-accessible memory
-- Copied triangle vertex positions into the vertex buffer
-- Added vertex binding descriptions to describe vertex stride
-- Added vertex attribute descriptions to describe vertex input layout
-- Updated graphics pipeline to use vertex input state
-- Updated vertex shader to read position data from the vertex buffer
+- Added a `VrModel` wrapper class
+- Added a `Vertex` structure
+- Created and allocated a Vulkan vertex buffer
+- Mapped CPU-visible memory
+- Copied vertex data into the buffer
+- Added vertex binding descriptions
+- Added vertex attribute descriptions
+- Updated the graphics pipeline and vertex shader to consume vertex data
 
 ### Tutorial 07: Fragment Interpolation
 
-- Extended the `Vertex` struct with color data
-- Updated vertex attribute descriptions for multiple vertex attributes
-- Connected vertex shader outputs to fragment shader inputs
-- Passed color data from vertex shader to fragment shader
-- Updated fragment shader to render interpolated vertex colors
-- Rendered a colored triangle using per-vertex color attributes
+- Added per-vertex color data
+- Passed color from the vertex shader to the fragment shader
+- Added multiple vertex attributes
+- Rendered interpolated colors across triangle surfaces
 
-### Tutorial 08: Swap Chain Recreation & Dynamic Viewports
+### Tutorial 08: Swap-Chain Recreation & Dynamic Viewports
 
-- Added window resize handling
-- Added framebuffer resize flag to the window class
-- Added swap chain recreation logic
+- Added window-resize handling
+- Tracked framebuffer resize events
+- Added swap-chain recreation
 - Handled `VK_ERROR_OUT_OF_DATE_KHR`
 - Handled `VK_SUBOPTIMAL_KHR`
-- Waited for valid non-zero window extent before recreating swap chain
-- Used old swap chain during swap chain recreation
+- Waited for a valid, non-zero window extent
+- Reused the old swap chain during recreation
 - Added dynamic viewport and scissor state
-- Removed pipeline dependency on fixed swap chain width and height
-- Allowed resizing without recreating the graphics pipeline when render pass formats stay compatible
+- Removed the need to recreate the pipeline for ordinary window resizing
 
 ### Tutorial 09: Push Constants
 
-- Added push constant data structure
-- Added push constant range to pipeline layout
-- Sent per-object data to shaders through push constants
-- Used push constants for object color, offset, and transform data
-- Updated shaders to consume push constant values
-- Prepared the renderer for drawing multiple objects with different per-object data
+- Added a push-constant data structure
+- Added a push-constant range to the pipeline layout
+- Sent small amounts of per-object data directly through command buffers
+- Used push constants for object color and transformations
+- Drew multiple objects with different per-object data
 
 ### Tutorial 10: 2D Transformations
 
 - Added `VrGameObject`
-- Added 2D transform component data
-- Added translation, scale, and rotation values
-- Built a 2D transformation matrix
+- Added translation, scale, and rotation properties
+- Built 2D transformation matrices
 - Applied object transforms through push constants
-- Animated object rotation over time
-- Separated model data from object instance data
+- Animated object rotation
+- Separated shared model data from object-instance data
 
 ### Tutorial 11: Renderer & Systems
 
-- Added `VrRenderer` class
-- Moved swap chain ownership from `FirstApp` into `VrRenderer`
-- Moved command buffer ownership into `VrRenderer`
-- Moved frame lifecycle logic into `VrRenderer`:
+- Added `VrRenderer`
+- Moved swap-chain and command-buffer ownership out of `FirstApp`
+- Added frame lifecycle methods:
   - `beginFrame`
   - `endFrame`
   - `beginSwapChainRenderPass`
   - `endSwapChainRenderPass`
-- Added `currentFrameIndex` for frame-in-flight resources
-- Added `currentImageIndex` for swap chain image/framebuffer resources
-- Added `isFrameStarted` guard to prevent invalid frame usage
+- Added `currentFrameIndex` and `currentImageIndex`
+- Added frame-state validation
 - Added `SimpleRenderSystem`
-- Moved graphics pipeline and pipeline layout ownership into `SimpleRenderSystem`
-- Moved game object draw logic into `SimpleRenderSystem::renderGameObjects`
+- Moved pipeline ownership and draw logic into the render system
 - Kept `FirstApp` focused on high-level application flow
-- Compared old and new swap chain formats during recreation to check pipeline/render pass compatibility
+
+### Tutorial 12: Euler Angles & Homogeneous Coordinates
+
+- Converted the renderer from 2D to 3D
+- Expanded positions and transforms to use `glm::vec3`
+- Built 3D translation, rotation, and scale matrices
+- Used Euler angles for object rotation
+- Added homogeneous coordinates
+- Updated push constants and shaders for 3D transformations
+- Added depth testing for overlapping geometry
+
+### Tutorial 13: Projection Matrices
+
+- Studied perspective projection mathematics
+- Added a `VrCamera` class
+- Implemented orthographic projection
+- Implemented perspective projection
+- Added configurable field of view, aspect ratio, and near/far clipping planes
+- Applied the projection matrix in the vertex shader
+
+### Tutorial 14: Camera View Transform
+
+- Implemented camera view matrices
+- Added target-based camera orientation
+- Added Euler-angle camera orientation
+- Added inverse view-matrix calculations
+- Separated camera movement from object movement
+- Combined projection, view, and model transformations
+
+### Tutorial 15: Game Loop & User Input
+
+- Added frame-time tracking
+- Added `KeyboardMovementController`
+- Implemented keyboard-controlled camera movement
+- Added camera rotation controls
+- Made movement frame-rate independent
+- Added a viewer game object to store camera position and orientation
+- Updated camera transforms each frame
+
+### Tutorial 16: Index & Staging Buffers
+
+- Added index-buffer support
+- Reused vertices through indexed drawing
+- Added staging buffers for GPU uploads
+- Copied data from host-visible staging memory into device-local buffers
+- Added single-use command-buffer helpers
+- Added general buffer-copy utilities
+- Improved vertex-buffer performance by storing final geometry in device-local memory
+
+### Tutorial 17: Loading 3D Models
+
+- Integrated `tinyobjloader`
+- Added Wavefront OBJ model loading
+- Loaded vertex positions, colors, and normals
+- Generated index data
+- Deduplicated repeated vertices
+- Added hashing support for vertices
+- Replaced hardcoded geometry with external model assets
+
+### Tutorial 18: Diffuse Shading
+
+- Added surface normals to vertex data
+- Passed normals from the vertex shader to the fragment shader
+- Added directional-light calculations
+- Implemented diffuse lighting using the dot product
+- Added ambient lighting
+- Added a normal matrix for correctly transforming normals
+- Updated per-object push constants with model and normal matrices
+- Added basic shaded 3D model rendering
+
+### Tutorial 19: Uniform Buffers
+
+- Added a reusable `VrBuffer` abstraction
+- Centralized Vulkan buffer creation, allocation, mapping, writing, and cleanup
+- Added support for aligned buffer instances
+- Accounted for Vulkan memory-alignment requirements
+- Added handling for non-coherent memory flushing and invalidation
+- Added a `GlobalUbo` structure for frame-global rendering data
+- Prepared projection and view matrices for transfer through a uniform buffer
+- Created one uniform buffer per frame in flight
+- Persistently mapped uniform-buffer memory
+- Updated the current frame's uniform data each frame
+- Prepared the renderer for descriptor sets in Tutorial 20
 
 ## Current Architecture
 
-The project is now split into smaller responsibilities:
-
-```txt
+```text
 FirstApp
-  - Owns high-level application flow
-  - Owns game objects
-  - Runs the main loop
-  - Calls renderer and render systems
-
-VrRenderer
-  - Owns swap chain
-  - Owns command buffers
-  - Manages frame begin/end
-  - Manages render pass begin/end
-  - Handles swap chain recreation
-
-VrSwapChain
-  - Owns swap chain images
-  - Owns image views
-  - Owns render pass
-  - Owns depth resources
-  - Owns framebuffers
-  - Owns synchronization objects
-
-SimpleRenderSystem
-  - Owns pipeline layout
-  - Owns graphics pipeline
-  - Binds pipeline
-  - Pushes per-object constants
-  - Draws game objects
-
-VrModel
-  - Owns vertex buffer
-  - Stores vertex count
-  - Binds and draws model geometry
-
-VrDevice
-  - Owns Vulkan instance/device setup
-  - Owns physical and logical device
-  - Owns queues
-  - Owns command pool
-  - Provides helper functions for buffers and images
-
-VrWindow
-  - Owns GLFW window
-  - Creates Vulkan surface
-  - Tracks resize state
+├── VrWindow
+├── VrDevice
+├── VrRenderer
+│   ├── VrSwapChain
+│   └── Command buffers
+├── SimpleRenderSystem
+├── VrCamera
+├── KeyboardMovementController
+├── Game objects
+├── Models
+└── Per-frame uniform buffers
 ```
 
-## Current Renderer Flow
+### Main Responsibilities
 
-```txt
-Program startup
-  FirstApp creates:
-    VrWindow
-    VrDevice
-    VrRenderer
-      VrRenderer creates:
-        VrSwapChain
-          swap chain images
-          image views
-          render pass
-          depth resources
-          framebuffers
-          sync objects
-        command buffers
+#### `FirstApp`
 
-FirstApp::run()
-  creates SimpleRenderSystem
-    pipeline layout
-    graphics pipeline
+- Owns high-level application flow
+- Loads models and creates game objects
+- Runs the main loop
+- Updates camera movement
+- Updates per-frame global rendering data
+- Calls the renderer and render systems
 
-Each frame:
-  glfwPollEvents()
+#### `VrRenderer`
 
-  VrRenderer::beginFrame()
-    acquire swap chain image
-    store currentImageIndex
-    get command buffer using currentFrameIndex
-    begin command buffer
+- Owns command buffers
+- Owns the swap chain
+- Starts and ends frames
+- Starts and ends swap-chain render passes
+- Handles swap-chain recreation
+- Tracks the current frame and swap-chain image
 
-  VrRenderer::beginSwapChainRenderPass()
-    choose framebuffer using currentImageIndex
-    begin render pass
-    set dynamic viewport and scissor
+#### `VrSwapChain`
 
-  SimpleRenderSystem::renderGameObjects()
-    bind graphics pipeline
-    update object transform
-    push constants
-    bind model vertex buffer
+- Owns swap-chain images and image views
+- Owns the render pass
+- Owns depth resources
+- Owns framebuffers
+- Owns synchronization resources
+- Acquires and presents swap-chain images
+
+#### `SimpleRenderSystem`
+
+- Owns the graphics pipeline and pipeline layout
+- Binds the pipeline
+- Sends per-object transformation data
+- Binds models
+- Issues indexed or non-indexed draw calls
+
+#### `VrModel`
+
+- Loads model geometry
+- Owns vertex and index buffers
+- Binds geometry buffers
+- Issues model draw commands
+
+#### `VrBuffer`
+
+- Wraps `VkBuffer` and `VkDeviceMemory`
+- Handles memory mapping
+- Writes CPU data into mapped memory
+- Handles alignment, flushing, and invalidation
+
+#### `VrCamera`
+
+- Creates projection matrices
+- Creates view matrices
+- Stores camera-space transformations
+
+#### `KeyboardMovementController`
+
+- Reads keyboard input
+- Moves and rotates the camera
+- Applies frame-time-independent movement
+
+## Frame Flow
+
+```text
+Poll window events
+        ↓
+Calculate frame time
+        ↓
+Update camera controller
+        ↓
+Update camera view and projection
+        ↓
+Begin frame
+        ↓
+Select uniform buffer using currentFrameIndex
+        ↓
+Write current GlobalUbo data
+        ↓
+Begin swap-chain render pass
+        ↓
+Bind graphics pipeline
+        ↓
+For each game object:
+    update push constants
+    bind model buffers
     draw model
-
-  VrRenderer::endSwapChainRenderPass()
-    end render pass
-
-  VrRenderer::endFrame()
-    end command buffer
-    submit command buffer
-    present swap chain image
-    recreate swap chain if needed
-    advance currentFrameIndex
+        ↓
+End render pass
+        ↓
+Submit command buffer
+        ↓
+Present swap-chain image
+        ↓
+Advance currentFrameIndex
 ```
 
-## Important Concepts Learned
+## Frame Index vs. Image Index
 
 ### `currentFrameIndex`
 
-`currentFrameIndex` chooses which frame-in-flight resources are being used.
+Identifies the current frame-in-flight resource slot.
 
-Use it for resources sized by `MAX_FRAMES_IN_FLIGHT`, such as:
+Used for resources such as:
 
 ```cpp
 commandBuffers[currentFrameIndex]
+uniformBuffers[currentFrameIndex]
 imageAvailableSemaphores[currentFrameIndex]
 inFlightFences[currentFrameIndex]
 ```
 
 ### `currentImageIndex`
 
-`currentImageIndex` is the swap chain image index returned by Vulkan when acquiring the next image.
+Identifies the swap-chain image returned by `vkAcquireNextImageKHR`.
 
-Use it for resources sized by swap chain image count, such as:
+Used for resources such as:
 
 ```cpp
-framebuffers[currentImageIndex]
+swapChainFramebuffers[currentImageIndex]
+swapChainImageViews[currentImageIndex]
 imagesInFlight[currentImageIndex]
-renderFinishedSemaphores[currentImageIndex]
 ```
 
-### Difference Between Frame Index and Image Index
+These indices are related, but they are not guaranteed to have the same value.
 
-```txt
-currentFrameIndex = which frame slot / command buffer am I using?
-currentImageIndex = which swap chain image / framebuffer did Vulkan give me?
-```
+## Data Sent to Shaders
 
-Example:
+```text
+Vertex buffer
+└── Per-vertex data
+    ├── position
+    ├── color
+    └── normal
 
-```txt
-currentFrameIndex = 0
-currentImageIndex = 2
+Index buffer
+└── Reuses vertices to construct triangles
 
-Use:
-  commandBuffers[0]
-  framebuffers[2]
+Push constants
+└── Small per-object data
+    ├── model matrix
+    └── normal matrix
+
+Uniform buffer
+└── Shared per-frame data
+    ├── projection matrix
+    └── view matrix
 ```
 
 ## Build
+
+### Requirements
+
+- macOS
+- CMake
+- Vulkan SDK
+- GLFW
+- GLM
+- `tinyobjloader`
+- A C++17-compatible compiler
+
+Install common Homebrew dependencies:
+
+```bash
+brew install cmake glfw glm tinyobjloader
+```
+
+Make sure the Vulkan SDK environment is configured before building.
+
+### Compile and Run
 
 ```bash
 rm -rf build
@@ -314,6 +422,39 @@ make
 ./Vulkan-Renderer
 ```
 
-## Notes
+## Platform Notes
 
-This project is developed on macOS with MoltenVK, so some Vulkan setup differs from the original tutorial. macOS-specific instance/device extensions and portability flags are required.
+This project is developed on macOS using MoltenVK. It includes platform-specific Vulkan configuration such as:
+
+- `VK_KHR_portability_enumeration`
+- `VK_KHR_portability_subset`
+- `VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR`
+- Metal-compatible GLFW surface creation
+
+Some setup therefore differs from the original Windows-focused tutorial implementation.
+
+## Next Step
+
+Tutorial 20 will connect uniform buffers to shaders using:
+
+- descriptor set layouts
+- descriptor pools
+- descriptor sets
+- descriptor writes
+- pipeline-layout descriptor bindings
+
+## Learning Goals
+
+This project is intended to build practical understanding of:
+
+- Vulkan resource creation and ownership
+- CPU-to-GPU memory transfer
+- frame synchronization
+- swap-chain management
+- command-buffer recording
+- shader data interfaces
+- 3D transformation mathematics
+- camera systems
+- model loading
+- basic lighting
+- renderer architecture
