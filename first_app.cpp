@@ -1,6 +1,7 @@
 #include "first_app.hpp"
 
 #include "keyboard_movement_controller.hpp"
+#include "vr_buffer.hpp"
 #include "vr_camera.hpp"
 #include "simple_render_system.hpp"
 
@@ -18,6 +19,12 @@
 
 namespace vr{
 
+    struct GlobalUbo
+    {
+        glm::mat4 projectionView{1.f};
+        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
+    };
+
     FirstApp::FirstApp()
     {
         loadGameObjects();
@@ -26,6 +33,18 @@ namespace vr{
     FirstApp::~FirstApp() {}
 
     void FirstApp::run(){
+        std::vector<std::unique_ptr<VrBuffer>> uboBuffers(VrSwapChain::MAX_FRAMES_IN_FLIGHT);
+        for (int i = 0; i < uboBuffers.size(); i++)
+        {
+            uboBuffers[i] = std::make_unique<VrBuffer>(
+                vrDevice,
+                sizeof(GlobalUbo),
+                1,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+            uboBuffers[i]->map();
+        }
+
         SimpleRenderSystem simpleRenderSystem{vrDevice, vrRenderer.getSwapChainRenderPass()};
         VrCamera camera{};
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
@@ -51,8 +70,18 @@ namespace vr{
             camera.setPerspectiveProjection(glm::radians(50.f), aspect, 0.1f, 10.f);
             if(auto commandBuffer  = vrRenderer.beginFrame()){
 
+                int frameIndex = vrRenderer.getFrameIndex();
+                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera};
+
+                // update
+                GlobalUbo ubo{};
+                ubo.projectionView = camera.getProjection() * camera.getView();
+                uboBuffers[frameIndex]->writeToBuffer(&ubo);
+                uboBuffers[frameIndex]->flush();
+
+                // render
                 vrRenderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(commandBuffer, gameObjects, camera);
+                simpleRenderSystem.renderGameObjects(frameInfo, gameObjects);
                 vrRenderer.endSwapChainRenderPass(commandBuffer);
                 vrRenderer.endFrame();
             }
@@ -63,11 +92,19 @@ namespace vr{
 
 void FirstApp::loadGameObjects()
 {
-    std::shared_ptr<VrModel> vrModel = VrModel::createModelFromFile(vrDevice, "models/flat_vase.obj");
-    auto gameObject = VrGameObject::createGameObject();
-    gameObject.model = vrModel;
-    gameObject.transform.translation = {.0f, .5f, 2.5f};
-    gameObject.transform.scale = glm::vec3{3.f};
-    gameObjects.push_back(std::move(gameObject));
+    std::shared_ptr<VrModel> VrModel =
+      VrModel::createModelFromFile(vrDevice, "models/flat_vase.obj");
+  auto flatVase = VrGameObject::createGameObject();
+  flatVase.model = VrModel;
+  flatVase.transform.translation = {-.5f, .5f, 2.5f};
+  flatVase.transform.scale = {3.f, 1.5f, 3.f};
+  gameObjects.push_back(std::move(flatVase));
+
+  VrModel = VrModel::createModelFromFile(vrDevice, "models/smooth_vase.obj");
+  auto smoothVase = VrGameObject::createGameObject();
+  smoothVase.model = VrModel;
+  smoothVase.transform.translation = {.5f, .5f, 2.5f};
+  smoothVase.transform.scale = {3.f, 1.5f, 3.f};
+  gameObjects.push_back(std::move(smoothVase));
 }
 }

@@ -22,6 +22,7 @@ add_executable(Vulkan-Renderer
     vr_camera.cpp
     keyboard_movement_controller.cpp
     vr_game_object.cpp
+    vr_buffer.cpp
 )
 
 target_include_directories(Vulkan-Renderer PRIVATE

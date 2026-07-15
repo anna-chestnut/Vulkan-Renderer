@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vr_device.hpp"
+#include "vr_buffer.hpp"
 
 // libs
 #define GLM_FORCE_RADIANS
@@ -55,13 +56,11 @@ namespace vr
 
         VrDevice &vrDevice;
 
-        VkBuffer vertexBuffer;
-        VkDeviceMemory vertexBufferMemory;
+        std::unique_ptr<VrBuffer> vertexBuffer;
         uint32_t vertexCount;
 
         bool hasIndexBuffer = false;
-        VkBuffer indexBuffer;
-        VkDeviceMemory indexBufferMemory;
+        std::unique_ptr<VrBuffer> indexBuffer;
         uint32_t indexCount;
     };
 }
