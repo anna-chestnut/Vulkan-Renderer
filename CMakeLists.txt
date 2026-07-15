@@ -21,6 +21,12 @@ add_executable(Vulkan-Renderer
     simple_render_system.cpp
     vr_camera.cpp
     keyboard_movement_controller.cpp
+    vr_game_object.cpp
+)
+
+target_include_directories(Vulkan-Renderer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/tinyobjectloader
 )
 
 target_link_libraries(Vulkan-Renderer PRIVATE 
@@ -80,3 +86,7 @@ endforeach()
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 
 add_dependencies(Vulkan-Renderer Shaders)
+
+# Copy model assets into the build directory.
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/models
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
