@@ -79,7 +79,7 @@ void VrDevice::createInstance() {
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
+  appInfo.apiVersion = VK_API_VERSION_1_3;
 
   VkInstanceCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -137,38 +137,89 @@ void VrDevice::pickPhysicalDevice() {
 
   vkGetPhysicalDeviceProperties(physicalDevice, &properties);
   std::cout << "physical device: " << properties.deviceName << std::endl;
+  std::cout
+    << "Vulkan API version: "
+    << VK_VERSION_MAJOR(properties.apiVersion) << "."
+    << VK_VERSION_MINOR(properties.apiVersion) << "."
+    << VK_VERSION_PATCH(properties.apiVersion)
+    << '\n';
 }
 
 void VrDevice::createLogicalDevice() {
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
+  // Describe the queues that should be created with the logical device.
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
   std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
 
   float queuePriority = 1.0f;
+
   for (uint32_t queueFamily : uniqueQueueFamilies) {
     VkDeviceQueueCreateInfo queueCreateInfo = {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = queueFamily;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
+
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
-  VkPhysicalDeviceFeatures deviceFeatures = {};
-  deviceFeatures.samplerAnisotropy = VK_TRUE;
+  // Step 1: Query
+  // Query Vulkan 1.3 feature support.
+  VkPhysicalDeviceVulkan13Features supportedVulkan13Features{};
+  supportedVulkan13Features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 
+  VkPhysicalDeviceFeatures2 supportedFeatures{};
+  supportedFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  supportedFeatures.pNext = &supportedVulkan13Features;
+
+  vkGetPhysicalDeviceFeatures2(physicalDevice, &supportedFeatures);
+
+  // Validate all features required by the renderer.
+  if (!supportedVulkan13Features.dynamicRendering)
+  {
+    throw std::runtime_error("dynamic rendering is not supported");
+  }
+
+  if (!supportedVulkan13Features.synchronization2)
+  {
+    throw std::runtime_error("synchronization2 is not supported");
+  }
+
+  // Step 2 : Enable
+  // Select the Vulkan 1.3 features that should be enabled.
+  VkPhysicalDeviceVulkan13Features enabledVulkan13Features{};
+  enabledVulkan13Features.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+  enabledVulkan13Features.dynamicRendering = VK_TRUE;
+  enabledVulkan13Features.synchronization2 = VK_TRUE;
+
+  // Select core Vulkan 1.0 features and attach Vulkan 1.3 features.
+  VkPhysicalDeviceFeatures2 enabledFeatures{};
+  enabledFeatures.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  enabledFeatures.pNext = &enabledVulkan13Features;
+  enabledFeatures.features.samplerAnisotropy = VK_TRUE;
+
+  // VkDeviceCreateInfo describes the entire logical device you want Vulkan to create.
   VkDeviceCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+  // Modern feature-enabling chain.
+  createInfo.pNext = &enabledFeatures;
+  // Features are enabled through VkPhysicalDeviceFeatures2 in the pNext chain,
+  // so the legacy pEnabledFeatures pointer must remain null.
+  createInfo.pEnabledFeatures = nullptr;
 
   createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
   createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-  createInfo.pEnabledFeatures = &deviceFeatures;
   createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  // Device layers are deprecated. Only enable validation layers at instance creation.
+  // Device layers are deprecated.
   createInfo.enabledLayerCount = 0;
   createInfo.ppEnabledLayerNames = nullptr;
 
