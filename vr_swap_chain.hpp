@@ -24,14 +24,18 @@ class VrSwapChain {
   VrSwapChain(const VrSwapChain &) = delete;
   VrSwapChain operator=(const VrSwapChain &) = delete;
 
-  VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
-  VkRenderPass getRenderPass() { return renderPass; }
   VkImageView getImageView(int index) { return swapChainImageViews[index]; }
   size_t imageCount() { return swapChainImages.size(); }
-  VkFormat getSwapChainImageFormat() { return swapChainImageFormat; }
-  VkExtent2D getSwapChainExtent() { return swapChainExtent; }
+  VkFormat getSwapChainImageFormat() const { return swapChainImageFormat; }
+  VkExtent2D getSwapChainExtent() const { return swapChainExtent; }
+  VkFormat getDepthFormat() const { return swapChainDepthFormat; }
   uint32_t width() { return swapChainExtent.width; }
   uint32_t height() { return swapChainExtent.height; }
+
+  VkImage getSwapChainImage(uint32_t index) const { return swapChainImages[index]; }
+  VkImageView getSwapChainImageView(uint32_t index) const { return swapChainImageViews[index]; }
+  VkImage getDepthImage(uint32_t index) const { return depthImages[index]; }
+  VkImageView getDepthImageView(uint32_t index) const { return depthImageViews[index]; }
 
   float extentAspectRatio() {
     return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
@@ -52,8 +56,6 @@ class VrSwapChain {
   void createSwapChain();
   void createImageViews();
   void createDepthResources();
-  void createRenderPass();
-  void createFramebuffers();
   void createSyncObjects();
 
   // Helper functions
@@ -66,9 +68,6 @@ class VrSwapChain {
   VkFormat swapChainImageFormat;
   VkFormat swapChainDepthFormat;
   VkExtent2D swapChainExtent;
-
-  std::vector<VkFramebuffer> swapChainFramebuffers;
-  VkRenderPass renderPass;
 
   std::vector<VkImage> depthImages;
   std::vector<VkDeviceMemory> depthImageMemorys;

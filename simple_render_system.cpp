@@ -18,10 +18,14 @@ namespace vr{
         glm::mat4 normalMatrix{1.f};
     };
 
-    SimpleRenderSystem::SimpleRenderSystem(VrDevice &device, VkRenderPass renderPass) : vrDevice{device}
+    SimpleRenderSystem::SimpleRenderSystem(
+        VrDevice &device,
+        VkFormat colorAttachmentFormat,
+        VkFormat depthAttachmentFormat)
+        : vrDevice{device}
     {
         createPipelineLayout();
-        createPipeline(renderPass);
+        createPipeline(colorAttachmentFormat, depthAttachmentFormat);
     }
 
     SimpleRenderSystem::~SimpleRenderSystem() { vkDestroyPipelineLayout(vrDevice.device(), pipelineLayout, nullptr); }
@@ -46,16 +50,19 @@ namespace vr{
         }
     }
 
-    
-
-    void SimpleRenderSystem::createPipeline(VkRenderPass renderPass)
+    void SimpleRenderSystem::createPipeline(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat)
     {
-        assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
+        assert(
+            pipelineLayout != VK_NULL_HANDLE &&
+            "Cannot create pipeline before pipeline layout");
 
         PipelineConfigInfo pipelineConfig{};
         VrPipeline::defaultPipelineConfigInfo(pipelineConfig);
-        pipelineConfig.renderPass = renderPass;
+
         pipelineConfig.pipelineLayout = pipelineLayout;
+        pipelineConfig.colorAttachmentFormat = colorAttachmentFormat;
+        pipelineConfig.depthAttachmentFormat = depthAttachmentFormat;
+
         vrPipeline = std::make_unique<VrPipeline>(
             vrDevice,
             "shaders/simple_shader.vert.spv",
@@ -70,7 +77,7 @@ namespace vr{
         auto projectionView = frameInfo.camera.getProjection() * frameInfo.camera.getView();
 
         for (auto &obj : gameObjects)
-        {   
+        {
             SimplePushConstantData push{};
             auto modelMatrix = obj.transform.mat4();
             push.transform = projectionView * modelMatrix;
@@ -88,5 +95,5 @@ namespace vr{
         }
     }
 
-    
+
 }

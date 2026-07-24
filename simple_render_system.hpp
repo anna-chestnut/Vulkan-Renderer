@@ -15,22 +15,25 @@ namespace vr
     class SimpleRenderSystem{
 
         public:
+            SimpleRenderSystem(
+                VrDevice &device,
+                VkFormat colorAttachmentFormat,
+                VkFormat depthAttachmentFormat);
+            ~SimpleRenderSystem();
 
-        SimpleRenderSystem(VrDevice &device, VkRenderPass renderPass);
-        ~SimpleRenderSystem();
+            SimpleRenderSystem(const SimpleRenderSystem &) = delete;
+            SimpleRenderSystem &operator=(const SimpleRenderSystem &) = delete;
 
-        SimpleRenderSystem(const SimpleRenderSystem &) = delete;
-        SimpleRenderSystem &operator=(const SimpleRenderSystem &) = delete;
+            void renderGameObjects(FrameInfo &frameInfo, std::vector<VrGameObject> &gameObjects);
 
-        void renderGameObjects(FrameInfo &frameInfo, std::vector<VrGameObject> &gameObjects);
-    private:
-        void createPipelineLayout();
-        void createPipeline(VkRenderPass renderPass);
+        private:
+            void createPipelineLayout();
+            void createPipeline(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat);
 
-        VrDevice &vrDevice;
-        
-        std::unique_ptr<VrPipeline> vrPipeline;
-        VkPipelineLayout pipelineLayout;
+            VrDevice &vrDevice;
+
+            std::unique_ptr<VrPipeline> vrPipeline;
+            VkPipelineLayout pipelineLayout;
     };
 
 } // namespace vr

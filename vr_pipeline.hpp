@@ -20,9 +20,11 @@ namespace vr{
         VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
         std::vector<VkDynamicState> dynamicStateEnables;
         VkPipelineDynamicStateCreateInfo dynamicStateInfo;
-        VkPipelineLayout pipelineLayout = nullptr;
-        VkRenderPass renderPass = nullptr;
-        uint32_t subpass = 0;
+
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+        VkFormat colorAttachmentFormat = VK_FORMAT_UNDEFINED;
+        VkFormat depthAttachmentFormat = VK_FORMAT_UNDEFINED;
     };
 
     class VrPipeline{

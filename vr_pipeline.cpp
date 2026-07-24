@@ -51,11 +51,16 @@ namespace vr
     {
 
         assert(
-            configInfo.pipelineLayout != nullptr &&
+            configInfo.pipelineLayout != VK_NULL_HANDLE &&
             "Cannot create graphics pipeline: no pipelineLayout provided in config info");
+
         assert(
-            configInfo.renderPass != nullptr &&
-            "Cannot create graphics pipeline: no renderPass provided in config info");
+            configInfo.colorAttachmentFormat != VK_FORMAT_UNDEFINED &&
+            "Cannot create graphics pipeline: no color attachment format provided");
+
+        assert(
+            configInfo.depthAttachmentFormat != VK_FORMAT_UNDEFINED &&
+            "Cannot create graphics pipeline: no depth attachment format provided");
 
         auto vertCode = readFile(vertFilePath);
         auto fragCode = readFile(fragFilePath);
@@ -91,8 +96,24 @@ namespace vr
             static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        VkGraphicsPipelineCreateInfo pipelineInfo = {};
+        // Dynamic rendering : we need to add rendering info to pipeline now since we are not using render pass
+        VkPipelineRenderingCreateInfo renderingInfo{};
+        renderingInfo.sType =
+            VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+
+        renderingInfo.viewMask = 0;
+
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachmentFormats = &configInfo.colorAttachmentFormat;
+
+        renderingInfo.depthAttachmentFormat = configInfo.depthAttachmentFormat;
+
+        renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.pNext = &renderingInfo;
+
         pipelineInfo.stageCount = 2;
         pipelineInfo.pStages = shaderStages;
         pipelineInfo.pVertexInputState = &vertexInputInfo;
@@ -107,8 +128,10 @@ namespace vr
         pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
 
         pipelineInfo.layout = configInfo.pipelineLayout;
-        pipelineInfo.renderPass = configInfo.renderPass;
-        pipelineInfo.subpass = configInfo.subpass;
+
+        // This pipeline will be used with Dynamic Rendering.
+        pipelineInfo.renderPass = VK_NULL_HANDLE;
+        pipelineInfo.subpass = 0;
 
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
         pipelineInfo.basePipelineIndex = -1;              // Optional

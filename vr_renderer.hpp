@@ -21,7 +21,6 @@ namespace vr
         VrRenderer(const VrRenderer &) = delete;
         VrRenderer &operator=(const VrRenderer &) = delete;
 
-        VkRenderPass getSwapChainRenderPass() const { return vrSwapChain->getRenderPass(); }
         float getAspectRatio() const { return vrSwapChain->extentAspectRatio(); }
         bool isFrameInProgress() const {return isFrameStarted;}
 
@@ -35,10 +34,20 @@ namespace vr
             return currentFrameIndex;
         }
 
+        VkFormat getSwapChainImageFormat() const
+        {
+            return vrSwapChain->getSwapChainImageFormat();
+        }
+
+        VkFormat getSwapChainDepthFormat() const
+        {
+            return vrSwapChain->getDepthFormat();
+        }
+
         VkCommandBuffer beginFrame();
         void endFrame();
-        void beginSwapChainRenderPass(VkCommandBuffer commandBuffers);
-        void endSwapChainRenderPass(VkCommandBuffer commandBuffers);
+        void beginSwapChainRendering(VkCommandBuffer commandBuffer);
+        void endSwapChainRendering(VkCommandBuffer commandBuffer);
 
     private:
         void createCommandBuffers();
@@ -53,6 +62,17 @@ namespace vr
         uint32_t currentImageIndex{0};
         int currentFrameIndex{0};
         bool isFrameStarted{false};
+
+        void transitionImageLayout(
+            VkCommandBuffer commandBuffer,
+            VkImage image,
+            VkImageLayout oldLayout,
+            VkImageLayout newLayout,
+            VkPipelineStageFlags2 srcStageMask,
+            VkAccessFlags2 srcAccessMask,
+            VkPipelineStageFlags2 dstStageMask,
+            VkAccessFlags2 dstAccessMask,
+            VkImageAspectFlags aspectMask);
     };
 
 } // namespace vr

@@ -6,7 +6,7 @@ This project follows [Brendan Galea's Vulkan Game Engine tutorial series](https:
 
 ## Current Progress
 
-Completed through **Tutorial 19: Uniform Buffers**.
+Completed through **Tutorial 19: Uniform Buffers**, followed by a migration to selected Vulkan 1.3 features.
 
 ### Tutorial 01: Opening a Window
 
@@ -224,16 +224,95 @@ Completed through **Tutorial 19: Uniform Buffers**.
 - Updated the current frame's uniform data each frame
 - Prepared the renderer for descriptor sets in Tutorial 20
 
+
+### Modern Vulkan: Vulkan 1.3 Feature Setup & Dynamic Rendering
+
+- Updated the application API version to Vulkan 1.3
+- Queried Vulkan 1.3 feature support through:
+  - `VkPhysicalDeviceFeatures2`
+  - `VkPhysicalDeviceVulkan13Features`
+- Explicitly enabled:
+  - `dynamicRendering`
+  - `synchronization2`
+- Kept legacy `pEnabledFeatures` null when enabling features through the `pNext` chain
+- Replaced graphics-pipeline render-pass compatibility with:
+  - `VkPipelineRenderingCreateInfo`
+  - explicit color and depth attachment formats
+- Replaced:
+  - `vkCmdBeginRenderPass`
+  - `vkCmdEndRenderPass`
+- Added:
+  - `vkCmdBeginRendering`
+  - `vkCmdEndRendering`
+  - `VkRenderingAttachmentInfo`
+  - `VkRenderingInfo`
+- Removed `VkRenderPass` creation and ownership
+- Removed `VkFramebuffer` creation and ownership
+- Passed the current swap-chain and depth image views directly to Dynamic Rendering
+- Added explicit image-layout transitions using:
+  - `VkImageMemoryBarrier2`
+  - `VkDependencyInfo`
+  - `vkCmdPipelineBarrier2`
+- Transitioned swap-chain images between:
+  - `VK_IMAGE_LAYOUT_UNDEFINED`
+  - `VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL`
+  - `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
+- Transitioned depth images into:
+  - `VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL`
+- Preserved dynamic viewport and scissor state
+- Kept swap-chain recreation compatible by verifying color and depth formats
+
+#### Architecture Change
+
+```text
+Before:
+
+VrSwapChain
+├── Swap-chain images and image views
+├── Depth images and image views
+├── VkRenderPass
+└── VkFramebuffer objects
+        ↑
+VrPipeline depends on VkRenderPass compatibility
+        ↑
+VrRenderer begins a render pass with a framebuffer
+
+
+After:
+
+VrSwapChain
+├── Swap-chain images and image views
+└── Depth images and image views
+        ↑
+VrRenderer directly selects the current ImageViews
+        ↓
+Explicit image barriers
+        ↓
+vkCmdBeginRendering / vkCmdEndRendering
+
+VrPipeline
+└── Depends on color and depth attachment formats
+```
+
+Dynamic Rendering removes the need to pre-create render-pass and framebuffer objects. Attachment formats are declared when the graphics pipeline is created, while the actual image views, clear operations, and render area are supplied while recording each command buffer.
+
 ## Current Architecture
 
 ```text
 FirstApp
 ├── VrWindow
 ├── VrDevice
+│   └── Vulkan 1.3 feature configuration
 ├── VrRenderer
 │   ├── VrSwapChain
-│   └── Command buffers
+│   │   ├── Swap-chain images and image views
+│   │   ├── Depth images and image views
+│   │   └── Synchronization resources
+│   ├── Command buffers
+│   └── Dynamic Rendering and image transitions
 ├── SimpleRenderSystem
+│   ├── Graphics pipeline
+│   └── Pipeline layout
 ├── VrCamera
 ├── KeyboardMovementController
 ├── Game objects
@@ -257,22 +336,29 @@ FirstApp
 - Owns command buffers
 - Owns the swap chain
 - Starts and ends frames
-- Starts and ends swap-chain render passes
+- Begins and ends Dynamic Rendering
+- Supplies the current color and depth image views
+- Records explicit image-layout transitions
+- Transitions rendered swap-chain images into presentation layout
+- Sets dynamic viewport and scissor state
 - Handles swap-chain recreation
 - Tracks the current frame and swap-chain image
 
 #### `VrSwapChain`
 
 - Owns swap-chain images and image views
-- Owns the render pass
-- Owns depth resources
-- Owns framebuffers
+- Owns depth images, memory, and image views
+- Stores the active color and depth formats
 - Owns synchronization resources
 - Acquires and presents swap-chain images
+- Recreates presentation resources when the window changes
+- No longer owns `VkRenderPass` or `VkFramebuffer` objects
 
 #### `SimpleRenderSystem`
 
 - Owns the graphics pipeline and pipeline layout
+- Creates a Dynamic Rendering-compatible graphics pipeline
+- Configures expected color and depth attachment formats
 - Binds the pipeline
 - Sends per-object transformation data
 - Binds models
@@ -315,13 +401,23 @@ Update camera controller
         ↓
 Update camera view and projection
         ↓
-Begin frame
+Acquire a swap-chain image
+        ↓
+Begin the current frame's command buffer
         ↓
 Select uniform buffer using currentFrameIndex
         ↓
 Write current GlobalUbo data
         ↓
-Begin swap-chain render pass
+Transition color image:
+UNDEFINED → COLOR_ATTACHMENT_OPTIMAL
+        ↓
+Transition depth image:
+UNDEFINED → DEPTH_ATTACHMENT_OPTIMAL
+        ↓
+Begin Dynamic Rendering with current ImageViews
+        ↓
+Set dynamic viewport and scissor
         ↓
 Bind graphics pipeline
         ↓
@@ -330,9 +426,12 @@ For each game object:
     bind model buffers
     draw model
         ↓
-End render pass
+End Dynamic Rendering
         ↓
-Submit command buffer
+Transition color image:
+COLOR_ATTACHMENT_OPTIMAL → PRESENT_SRC_KHR
+        ↓
+End and submit command buffer
         ↓
 Present swap-chain image
         ↓
@@ -361,8 +460,10 @@ Identifies the swap-chain image returned by `vkAcquireNextImageKHR`.
 Used for resources such as:
 
 ```cpp
-swapChainFramebuffers[currentImageIndex]
+swapChainImages[currentImageIndex]
 swapChainImageViews[currentImageIndex]
+depthImages[currentImageIndex]
+depthImageViews[currentImageIndex]
 imagesInFlight[currentImageIndex]
 ```
 
@@ -435,13 +536,20 @@ Some setup therefore differs from the original Windows-focused tutorial implemen
 
 ## Next Step
 
-Tutorial 20 will connect uniform buffers to shaders using:
+Continue with **Tutorial 20: Descriptor Sets** to connect uniform buffers to shaders using:
 
 - descriptor set layouts
 - descriptor pools
 - descriptor sets
 - descriptor writes
 - pipeline-layout descriptor bindings
+
+After the descriptor-system work is stable, continue modernizing queue submission by replacing the remaining legacy submission path with:
+
+- `VkSubmitInfo2`
+- `VkSemaphoreSubmitInfo`
+- `VkCommandBufferSubmitInfo`
+- `vkQueueSubmit2`
 
 ## Learning Goals
 
@@ -452,6 +560,10 @@ This project is intended to build practical understanding of:
 - frame synchronization
 - swap-chain management
 - command-buffer recording
+- Vulkan 1.3 feature querying and enabling
+- Dynamic Rendering
+- explicit image-layout transitions
+- Synchronization2 barriers
 - shader data interfaces
 - 3D transformation mathematics
 - camera systems

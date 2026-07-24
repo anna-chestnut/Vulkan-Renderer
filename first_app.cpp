@@ -45,7 +45,7 @@ namespace vr{
             uboBuffers[i]->map();
         }
 
-        SimpleRenderSystem simpleRenderSystem{vrDevice, vrRenderer.getSwapChainRenderPass()};
+        SimpleRenderSystem simpleRenderSystem{vrDevice, vrRenderer.getSwapChainImageFormat(), vrRenderer.getSwapChainDepthFormat()};
         VrCamera camera{};
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
         // Invisible helper object that stores the camera's position and rotation.
@@ -80,9 +80,9 @@ namespace vr{
                 uboBuffers[frameIndex]->flush();
 
                 // render
-                vrRenderer.beginSwapChainRenderPass(commandBuffer);
+                vrRenderer.beginSwapChainRendering(commandBuffer);
                 simpleRenderSystem.renderGameObjects(frameInfo, gameObjects);
-                vrRenderer.endSwapChainRenderPass(commandBuffer);
+                vrRenderer.endSwapChainRendering(commandBuffer);
                 vrRenderer.endFrame();
             }
         }
