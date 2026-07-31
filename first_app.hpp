@@ -4,6 +4,7 @@
 #include "vr_device.hpp"
 #include "vr_game_object.hpp"
 #include "vr_renderer.hpp"
+#include "vr_descriptors.hpp"
 
 //std
 #include <memory>
@@ -32,6 +33,8 @@ namespace vr
         VrDevice vrDevice{vrWindow};
         VrRenderer vrRenderer{vrWindow, vrDevice};
         
+        // note : order of declararions matter. On closing, we want the pool to be destroyed before the devices
+        std::unique_ptr<VrDescriptorPool> globalPool{};
         std::vector<VrGameObject> gameObjects;
     };
 

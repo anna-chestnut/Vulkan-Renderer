@@ -27,6 +27,10 @@ namespace vr{
 
     FirstApp::FirstApp()
     {
+        globalPool = VrDescriptorPool::Builder(vrDevice)
+                         .setMaxSets(VrSwapChain::MAX_FRAMES_IN_FLIGHT)
+                         .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VrSwapChain::MAX_FRAMES_IN_FLIGHT)
+                         .build();
         loadGameObjects();
     }
 
@@ -45,7 +49,23 @@ namespace vr{
             uboBuffers[i]->map();
         }
 
-        SimpleRenderSystem simpleRenderSystem{vrDevice, vrRenderer.getSwapChainImageFormat(), vrRenderer.getSwapChainDepthFormat()};
+        auto globalSetLayout = VrDescriptorSetLayout::Builder(vrDevice)
+                                   .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                                   .build();
+
+        std::vector<VkDescriptorSet> globalDescriptorSets(VrSwapChain::MAX_FRAMES_IN_FLIGHT);
+        for(int i = 0; i < globalDescriptorSets.size(); i++){
+            auto bufferInfo = uboBuffers[i]->descriptorInfo();
+            VrDescriptorWriter(*globalSetLayout, *globalPool)
+            .writeBuffer(0, &bufferInfo)
+            .build(globalDescriptorSets[i]);
+        }
+
+        SimpleRenderSystem simpleRenderSystem{
+            vrDevice,
+            vrRenderer.getSwapChainImageFormat(),
+            vrRenderer.getSwapChainDepthFormat(),
+            globalSetLayout->getDescriptorSetLayout()};
         VrCamera camera{};
         camera.setViewTarget(glm::vec3(-1.f, -2.f, 2.f), glm::vec3(0.f, 0.f, 2.5f));
         // Invisible helper object that stores the camera's position and rotation.
@@ -71,7 +91,7 @@ namespace vr{
             if(auto commandBuffer  = vrRenderer.beginFrame()){
 
                 int frameIndex = vrRenderer.getFrameIndex();
-                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera};
+                FrameInfo frameInfo{frameIndex, frameTime, commandBuffer, camera, globalDescriptorSets[frameIndex]};
 
                 // update
                 GlobalUbo ubo{};

@@ -13,5 +13,6 @@ namespace vr
         float frameTime;
         VkCommandBuffer commandBuffer;
         VrCamera &camera;
+        VkDescriptorSet globalDescriptorSet;
     };
 } // namespace vr

@@ -18,7 +18,9 @@ namespace vr
             SimpleRenderSystem(
                 VrDevice &device,
                 VkFormat colorAttachmentFormat,
-                VkFormat depthAttachmentFormat);
+                VkFormat depthAttachmentFormat,
+                VkDescriptorSetLayout globalSetLayout
+            );
             ~SimpleRenderSystem();
 
             SimpleRenderSystem(const SimpleRenderSystem &) = delete;
@@ -27,7 +29,7 @@ namespace vr
             void renderGameObjects(FrameInfo &frameInfo, std::vector<VrGameObject> &gameObjects);
 
         private:
-            void createPipelineLayout();
+            void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
             void createPipeline(VkFormat colorAttachmentFormat, VkFormat depthAttachmentFormat);
 
             VrDevice &vrDevice;
