@@ -20,6 +20,13 @@ namespace vr
         glm::mat3 normalMatrix();    
     };
 
+    struct PointLightComponent
+    {
+        float intensity;
+        float radius;
+    };
+    
+
     class VrGameObject
     {
     public:
@@ -39,6 +46,8 @@ namespace vr
         const id_t getId() { return id; }
 
         std::shared_ptr<VrModel> model{};
+        std::optional<PointLightComponent> pointLight{};
+        
         glm::vec3 color{};
         TransformComponent transform{};
 

@@ -24,6 +24,7 @@ add_executable(Vulkan-Renderer
     vr_game_object.cpp
     vr_buffer.cpp
     vr_descriptors.cpp
+    point_light_system.cpp
 )
 
 target_include_directories(Vulkan-Renderer PRIVATE

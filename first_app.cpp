@@ -4,6 +4,8 @@
 #include "vr_buffer.hpp"
 #include "vr_camera.hpp"
 #include "simple_render_system.hpp"
+#include "point_light_system.hpp"
+#include "vr_frame_info.hpp"
 
 // libs
 #define GLM_FORCE_RADIANS
@@ -18,12 +20,6 @@
 #include <stdexcept>
 
 namespace vr{
-
-    struct GlobalUbo
-    {
-        glm::mat4 projectionView{1.f};
-        glm::vec3 lightDirection = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
-    };
 
     FirstApp::FirstApp()
     {
@@ -50,7 +46,7 @@ namespace vr{
         }
 
         auto globalSetLayout = VrDescriptorSetLayout::Builder(vrDevice)
-                                   .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+                                   .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                                    .build();
 
         std::vector<VkDescriptorSet> globalDescriptorSets(VrSwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -72,6 +68,8 @@ namespace vr{
         // It is not rendered; its transform is used to update the camera.
         auto viewObject = VrGameObject::createGameObject();
         KeyboardMovementController cameraController{};
+        
+        PointLightSystem pointLightSystem{};
 
         auto currentTime = std::chrono::high_resolution_clock::now();
 
@@ -96,6 +94,12 @@ namespace vr{
                 // update
                 GlobalUbo ubo{};
                 ubo.projectionView = camera.getProjection() * camera.getView();
+
+                ubo.ambientLightColor = glm::vec4{1.f, 1.f, 1.f, 0.02f};
+                // Fill all CPU-side UBO values first.
+                pointLightSystem.update(frameInfo, ubo, gameObjects);
+
+                // Upload the completed UBO afterward.
                 uboBuffers[frameIndex]->writeToBuffer(&ubo);
                 uboBuffers[frameIndex]->flush();
 
@@ -113,18 +117,31 @@ namespace vr{
 void FirstApp::loadGameObjects()
 {
     std::shared_ptr<VrModel> VrModel =
-      VrModel::createModelFromFile(vrDevice, "models/flat_vase.obj");
-  auto flatVase = VrGameObject::createGameObject();
-  flatVase.model = VrModel;
-  flatVase.transform.translation = {-.5f, .5f, 2.5f};
-  flatVase.transform.scale = {3.f, 1.5f, 3.f};
-  gameObjects.push_back(std::move(flatVase));
+        VrModel::createModelFromFile(vrDevice, "models/flat_vase.obj");
+    //   auto flatVase = VrGameObject::createGameObject();
+    //   flatVase.model = VrModel;
+    //   flatVase.transform.translation = {-.5f, .5f, 2.5f};
+    //   flatVase.transform.scale = {3.f, 1.5f, 3.f};
+    //   gameObjects.push_back(std::move(flatVase));
 
-  VrModel = VrModel::createModelFromFile(vrDevice, "models/smooth_vase.obj");
-  auto smoothVase = VrGameObject::createGameObject();
-  smoothVase.model = VrModel;
-  smoothVase.transform.translation = {.5f, .5f, 2.5f};
-  smoothVase.transform.scale = {3.f, 1.5f, 3.f};
-  gameObjects.push_back(std::move(smoothVase));
+    VrModel = VrModel::createModelFromFile(vrDevice, "models/smooth_vase.obj");
+    auto smoothVase = VrGameObject::createGameObject();
+    smoothVase.model = VrModel;
+    smoothVase.transform.translation = {-1.0f, .5f, 2.5f};
+    smoothVase.transform.scale = {3.f, 1.5f, 3.f};
+    gameObjects.push_back(std::move(smoothVase));
+
+     VrModel = VrModel::createModelFromFile(vrDevice, "models/colored_cube.obj");
+    auto lightObject = VrGameObject::createGameObject();
+
+    lightObject.model = VrModel;
+    lightObject.transform.translation = {.5f, .8f, 1.f};
+    lightObject.color = {1.f, 1.f, 1.f};
+    lightObject.transform.scale = {0.1f, 0.1f, 0.1f};
+    lightObject.pointLight = PointLightComponent{
+        15.f, // intensity
+        0.5f  // radius
+    };
+    gameObjects.push_back(std::move(lightObject));
 }
 }

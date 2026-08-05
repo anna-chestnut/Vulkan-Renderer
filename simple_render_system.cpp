@@ -89,6 +89,11 @@ namespace vr{
 
         for (auto &obj : gameObjects)
         {
+            if (!obj.model)
+            {
+                continue;
+            }
+            
             SimplePushConstantData push{};
             push.modelMatrix = obj.transform.mat4();
             push.normalMatrix = obj.transform.normalMatrix();

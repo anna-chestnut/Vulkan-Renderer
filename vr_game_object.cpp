@@ -59,4 +59,6 @@ glm::mat3 TransformComponent::normalMatrix() {
   };
 }
 
+
+
 }  // namespace vr
