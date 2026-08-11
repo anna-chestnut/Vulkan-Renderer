@@ -94,8 +94,9 @@ namespace vr{
                 // update
                 GlobalUbo ubo{};
                 ubo.projectionView = camera.getProjection() * camera.getView();
+                ubo.cameraPosition = glm::vec4(viewObject.transform.translation, 1.f);
 
-                ubo.ambientLightColor = glm::vec4{1.f, 1.f, 1.f, 0.02f};
+                ubo.ambientLightColor = glm::vec4{1.f, 1.f, 1.f, 0.08f};
                 // Fill all CPU-side UBO values first.
                 pointLightSystem.update(frameInfo, ubo, gameObjects);
 
@@ -131,15 +132,15 @@ void FirstApp::loadGameObjects()
     smoothVase.transform.scale = {3.f, 1.5f, 3.f};
     gameObjects.push_back(std::move(smoothVase));
 
-     VrModel = VrModel::createModelFromFile(vrDevice, "models/colored_cube.obj");
+    VrModel = VrModel::createModelFromFile(vrDevice, "models/colored_cube.obj");
     auto lightObject = VrGameObject::createGameObject();
 
     lightObject.model = VrModel;
-    lightObject.transform.translation = {.5f, .8f, 1.f};
+    lightObject.transform.translation = {-2.0f, -1.0f, 1.5f};
     lightObject.color = {1.f, 1.f, 1.f};
     lightObject.transform.scale = {0.1f, 0.1f, 0.1f};
     lightObject.pointLight = PointLightComponent{
-        15.f, // intensity
+        2.f, // intensity
         0.5f  // radius
     };
     gameObjects.push_back(std::move(lightObject));
